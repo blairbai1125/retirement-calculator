@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="退休规划">
+<title>退休规划计算器</title>
+<style>
+:root {
+  --bg:#f5f5f0;--surface:#fff;--surface2:#f0efe9;--border:rgba(0,0,0,0.1);
+  --text:#1a1a1a;--muted:#666;--hint:#999;
+  --blue:#185FA5;--blue-bg:rgba(24,95,165,0.10);--red:#A32D2D;--green:#2d6e1e;
+  --r:14px;--rs:9px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1a18;--surface:#252523;--surface2:#2e2e2b;--border:rgba(255,255,255,0.1);
+    --text:#f0efe9;--muted:#aaa;--hint:#666;
+    --blue:#5b9fd4;--blue-bg:rgba(91,159,212,0.12);--red:#d47070;--green:#7ab84a;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);padding-bottom:48px;}
+header{background:var(--surface);border-bottom:0.5px solid var(--border);padding:16px 20px 12px;position:sticky;top:0;z-index:10;}
+header h1{font-size:17px;font-weight:600;text-align:center;}
+header p{font-size:12px;color:var(--muted);text-align:center;margin-top:2px;}
+.page{padding:14px;max-width:520px;margin:0 auto;}
+.card{background:var(--surface);border-radius:var(--r);padding:16px;margin-bottom:12px;border:0.5px solid var(--border);}
+.card-title{font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;color:var(--muted);line-height:1.4;}
+.iw{position:relative;}
+.iw input{width:100%;padding:10px 26px 10px 11px;font-size:16px;font-weight:500;color:var(--text);background:var(--surface2);border:0.5px solid var(--border);border-radius:var(--rs);-webkit-appearance:none;appearance:none;}
+.iw input:focus{outline:none;border-color:var(--blue);}
+.unit{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--hint);pointer-events:none;}
+.fn{font-size:11px;color:var(--hint);}
+.calc-btn{width:100%;padding:15px;margin-bottom:16px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;}
+.calc-btn:active{opacity:.8;}
+.rc{background:var(--surface);border-radius:var(--r);padding:16px;margin-bottom:12px;border:0.5px solid var(--border);}
+.rt{font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;}
+.stag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:var(--blue-bg);color:var(--blue);margin-left:6px;font-weight:600;vertical-align:middle;}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.metric{background:var(--surface2);border-radius:var(--rs);padding:12px;}
+.ml{font-size:11px;color:var(--muted);margin-bottom:5px;line-height:1.3;}
+.mv{font-size:19px;font-weight:600;line-height:1.2;color:var(--text);}
+.mv.blue{color:var(--blue);}.mv.danger{color:var(--red);}.mv.success{color:var(--green);}
+.mn{font-size:10px;color:var(--hint);margin-top:3px;line-height:1.3;}
+.rows{border-top:0.5px solid var(--border);}
+.row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--border);gap:8px;}
+.row:last-child{border-bottom:none;}
+.rl{font-size:13px;color:var(--muted);flex:1;}
+.rv{font-size:13px;font-weight:500;color:var(--text);text-align:right;}
+.rv.neg{color:var(--red);}.rv.big{font-size:15px;font-weight:700;color:var(--red);}.rv.surplus{font-size:15px;font-weight:700;color:var(--green);}
+.cs{background:var(--surface);border-radius:var(--r);padding:16px;margin-bottom:12px;border:0.5px solid var(--border);}
+.legend{display:flex;gap:16px;font-size:11px;color:var(--muted);margin-bottom:10px;}
+.lb{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle;}
+canvas{display:block;width:100%!important;}
+.hidden{display:none;}
+</style>
+</head>
+<body>
+<header>
+  <h1>退休规划计算器</h1>
+  <p>计算养老金缺口与今日所需本金</p>
+</header>
+<div class="page">
+  <div class="card">
+    <div class="card-title">基本信息</div>
+    <div class="g3">
+      <div class="field"><label>现在年龄</label><div class="iw"><input type="number" id="curAge" value="35" inputmode="numeric"><span class="unit">岁</span></div></div>
+      <div class="field"><label>退休年龄</label><div class="iw"><input type="number" id="retAge" value="60" inputmode="numeric"><span class="unit">岁</span></div></div>
+      <div class="field"><label>预计寿命</label><div class="iw"><input type="number" id="lifeExp" value="85" inputmode="numeric"><span class="unit">岁</span></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">财务参数</div>
+    <div class="g3">
+      <div class="field"><label>通胀率（年）</label><div class="iw"><input type="number" id="inflation" value="3" step="0.1" inputmode="decimal"><span class="unit">%</span></div></div>
+      <div class="field"><label>退休前回报率</label><div class="iw"><input type="number" id="returnPre" value="7" step="0.1" inputmode="decimal"><span class="unit">%</span></div><div class="fn">积累期</div></div>
+      <div class="field"><label>退休后回报率</label><div class="iw"><input type="number" id="returnPost" value="4" step="0.1" inputmode="decimal"><span class="unit">%</span></div><div class="fn">提取期</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">退休收支（以今天的钱计算）</div>
+    <div class="g2" style="margin-bottom:12px;">
+      <div class="field"><label>退休后每月消费</label><div class="iw"><input type="number" id="monthlyExpense" value="8000" inputmode="numeric"><span class="unit">元</span></div></div>
+      <div class="field"><label>每月社保退休金</label><div class="iw"><input type="number" id="monthlyPension" value="3000" inputmode="numeric"><span class="unit">元</span></div></div>
+    </div>
+    <div class="field"><label>退休时可准备的一笔过资金</label><div class="iw"><input type="number" id="lumpSum" value="200000" inputmode="numeric"><span class="unit">元</span></div></div>
+  </div>
+  <button class="calc-btn" onclick="calculate()">开始计算</button>
+
+  <div id="results" class="hidden">
+    <div class="rc">
+      <div class="rt">退休所需储蓄 <span class="stag">第一步</span></div>
+      <div class="metrics">
+        <div class="metric"><div class="ml">退休时月缺口（未来值）</div><div class="mv blue" id="monthlyGapFV">-</div><div class="mn">消费−社保，通胀调整后</div></div>
+        <div class="metric"><div class="ml">退休所需总储蓄</div><div class="mv blue" id="totalNeeded">-</div><div class="mn">按退休后回报率可持续提取</div></div>
+      </div>
+      <div class="rows">
+        <div class="row"><span class="rl">月消费（现值）</span><span class="rv" id="b1">-</span></div>
+        <div class="row"><span class="rl">每月社保（现值）</span><span class="rv neg" id="b2">-</span></div>
+        <div class="row"><span class="rl">月缺口（现值）</span><span class="rv" id="b3">-</span></div>
+        <div class="row"><span class="rl">通胀调整倍数</span><span class="rv" id="b4">-</span></div>
+        <div class="row"><span class="rl">月缺口（退休时）</span><span class="rv" id="b5">-</span></div>
+        <div class="row"><span class="rl">退休年数 / 退休后回报率</span><span class="rv" id="b6">-</span></div>
+      </div>
+    </div>
+    <div class="rc">
+      <div class="rt">养老金缺口 <span class="stag">第二步</span></div>
+      <div class="metrics">
+        <div class="metric"><div class="ml">退休所需总储蓄</div><div class="mv" id="r_totalNeeded">-</div></div>
+        <div class="metric"><div class="ml">已准备一笔过资金</div><div class="mv" id="r_lumpSum">-</div></div>
+      </div>
+      <div class="rows">
+        <div class="row"><span class="rl">养老金缺口（退休时）</span><span class="rv big" id="retGap">-</span></div>
+      </div>
+    </div>
+    <div class="rc">
+      <div class="rt">今日需要准备的本金 <span class="stag">第三步</span></div>
+      <div class="metrics">
+        <div class="metric"><div class="ml">今天需投入的本金</div><div class="mv success" id="pvNeeded">-</div><div class="mn">按退休前回报率复利增长</div></div>
+        <div class="metric"><div class="ml">距退休还有</div><div class="mv" id="yearsLeft">-</div><div class="mn">年复利积累时间</div></div>
+      </div>
+      <div class="rows">
+        <div class="row"><span class="rl">养老金缺口（退休时）</span><span class="rv" id="b7">-</span></div>
+        <div class="row"><span class="rl">退休前投资回报率</span><span class="rv" id="b8">-</span></div>
+        <div class="row"><span class="rl">积累年数</span><span class="rv" id="b9">-</span></div>
+        <div class="row"><span class="rl">增长因子 (1+r)^n</span><span class="rv" id="b10">-</span></div>
+      </div>
+    </div>
+    <div class="cs">
+      <div class="rt">资产增长预测</div>
+      <div class="legend">
+        <span><span class="lb" style="background:#185FA5;"></span>本金增长</span>
+        <span><span class="lb" style="background:#A32D2D;"></span>缺口目标</span>
+      </div>
+      <canvas id="growthChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+function fmt(n){
+  const a=Math.abs(n);
+  if(a>=1e8)return(n/1e8).toFixed(2)+'亿';
+  if(a>=1e4)return(n/1e4).toFixed(1)+'万';
+  return Math.round(n).toLocaleString();
+}
+
+function calculate(){
+  const curAge=+document.getElementById('curAge').value;
+  const retAge=+document.getElementById('retAge').value;
+  const lifeExp=+document.getElementById('lifeExp').value;
+  const inflation=+document.getElementById('inflation').value/100;
+  const returnPre=+document.getElementById('returnPre').value/100;
+  const returnPost=+document.getElementById('returnPost').value/100;
+  const monthlyExp=+document.getElementById('monthlyExpense').value;
+  const monthlyPen=+document.getElementById('monthlyPension').value;
+  const lumpSum=+document.getElementById('lumpSum').value;
+
+  const yearsToRet=retAge-curAge;
+  const retYears=lifeExp-retAge;
+  const monthlyGap=monthlyExp-monthlyPen;
+  const inflationMult=Math.pow(1+inflation,yearsToRet);
+  const monthlyGapFV=monthlyGap*inflationMult;
+  const mpr=returnPost/12;
+  const n=retYears*12;
+  const totalNeeded=Math.abs(mpr)<0.000001 ? monthlyGapFV*n : monthlyGapFV*(1-Math.pow(1+mpr,-n))/mpr;
+  const retGap=totalNeeded-lumpSum;
+  const gf=Math.pow(1+returnPre,yearsToRet);
+  const pvNeeded=retGap/gf;
+
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('monthlyGapFV').textContent=fmt(monthlyGapFV)+'元/月';
+  document.getElementById('totalNeeded').textContent=fmt(totalNeeded)+'元';
+  document.getElementById('pvNeeded').textContent=fmt(Math.max(0,pvNeeded))+'元';
+  document.getElementById('yearsLeft').textContent=yearsToRet+' 年';
+  document.getElementById('b1').textContent=fmt(monthlyExp)+'元';
+  document.getElementById('b2').textContent='−'+fmt(monthlyPen)+'元';
+  document.getElementById('b3').textContent=fmt(monthlyGap)+'元';
+  document.getElementById('b4').textContent=inflationMult.toFixed(3)+'x';
+  document.getElementById('b5').textContent=fmt(monthlyGapFV)+'元';
+  document.getElementById('b6').textContent=retYears+'年 / '+(+document.getElementById('returnPost').value).toFixed(1)+'%';
+  document.getElementById('r_totalNeeded').textContent=fmt(totalNeeded)+'元';
+  document.getElementById('r_lumpSum').textContent=fmt(lumpSum)+'元';
+  const ge=document.getElementById('retGap');
+  if(retGap<0){ge.textContent='盈余 '+fmt(Math.abs(retGap))+'元';ge.className='rv surplus';}
+  else{ge.textContent=fmt(retGap)+'元';ge.className='rv big';}
+  document.getElementById('b7').textContent=fmt(Math.max(0,retGap))+'元';
+  document.getElementById('b8').textContent=(+document.getElementById('returnPre').value).toFixed(1)+'%';
+  document.getElementById('b9').textContent=yearsToRet+'年';
+  document.getElementById('b10').textContent=gf.toFixed(3)+'x';
+
+  const pts=[];
+  const pv=Math.max(0,pvNeeded);
+  for(let y=0;y<=yearsToRet;y++) pts.push({age:curAge+y,val:Math.round(pv*Math.pow(1+returnPre,y))});
+  drawChart(pts,Math.max(0,retGap));
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function drawChart(pts,gap){
+  const canvas=document.getElementById('growthChart');
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.clientWidth-32;
+  const H=200;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  const dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const gc=dark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.07)';
+  const tc=dark?'#666':'#999';
+
+  const pad={t:10,r:12,b:36,l:52};
+  const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
+  const maxV=Math.max(...pts.map(p=>p.val),gap)*1.08;
+
+  function xp(i){return pad.l+(i/(pts.length-1))*cw;}
+  function yp(v){return pad.t+ch-(v/maxV)*ch;}
+
+  // grid
+  ctx.lineWidth=0.5;
+  for(let i=0;i<=4;i++){
+    const v=(maxV/4)*i, y=yp(v);
+    ctx.strokeStyle=gc;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
+    ctx.fillStyle=tc;ctx.font='10px -apple-system,sans-serif';ctx.textAlign='right';
+    ctx.fillText(fmt(v),pad.l-4,y+3);
+  }
+
+  // x labels
+  ctx.fillStyle=tc;ctx.font='10px -apple-system,sans-serif';ctx.textAlign='center';
+  const step=pts.length<=15?2:pts.length<=30?5:10;
+  for(let i=0;i<pts.length;i++){
+    if(i%step===0||i===pts.length-1) ctx.fillText(pts[i].age+'岁',xp(i),H-pad.b+14);
+  }
+
+  // gap dashed line
+  ctx.save();ctx.strokeStyle='#A32D2D';ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(pad.l,yp(gap));ctx.lineTo(pad.l+cw,yp(gap));ctx.stroke();
+  ctx.restore();
+
+  // area fill
+  ctx.save();
+  ctx.beginPath();ctx.moveTo(xp(0),yp(pts[0].val));
+  for(let i=1;i<pts.length;i++){
+    const cx=(xp(i-1)+xp(i))/2;
+    ctx.bezierCurveTo(cx,yp(pts[i-1].val),cx,yp(pts[i].val),xp(i),yp(pts[i].val));
+  }
+  ctx.lineTo(xp(pts.length-1),yp(0));ctx.lineTo(xp(0),yp(0));ctx.closePath();
+  ctx.fillStyle='rgba(24,95,165,0.10)';ctx.fill();ctx.restore();
+
+  // line
+  ctx.save();ctx.strokeStyle='#185FA5';ctx.lineWidth=2;ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(xp(0),yp(pts[0].val));
+  for(let i=1;i<pts.length;i++){
+    const cx=(xp(i-1)+xp(i))/2;
+    ctx.bezierCurveTo(cx,yp(pts[i-1].val),cx,yp(pts[i].val),xp(i),yp(pts[i].val));
+  }
+  ctx.stroke();ctx.restore();
+}
+</script>
+</body>
+</html>
